@@ -116,8 +116,8 @@ public class ClassifBayes implements Serializable{
 
 		proba[SPAM] += Math.log10(proba(SPAM));
 		proba[HAM] += Math.log10(proba(HAM));
-		boolean spam = proba[SPAM] >= proba[HAM];
-		System.out.println(": log10(P(Y=SPAM | X=x)) = "+ proba[SPAM] +", log10(P(Y=HAM | X=x)) = " + proba[HAM]);
+		boolean spam = proba[SPAM] > proba[HAM];
+		System.out.println("P(Y=SPAM | X=x) = "+ Math.pow(10,proba[SPAM]) +", P(Y=HAM | X=x) = " + Math.pow(10,proba[HAM]));
 		System.out.print("\t=> identifié comme un " + ((spam) ? "spam" : "ham"));
 		return spam  ? SPAM : HAM;
 	}
@@ -137,7 +137,7 @@ public class ClassifBayes implements Serializable{
 		for(int type = 0 ; type < 2 ; type++){
 			int i = 0;
 			for(FileInputStream file : listFilesForFolder(testDir + File.separator + dirs[type], max[type])){
-				System.out.print( (type == SPAM ? "SPAM" : "HAM") + " numéro: " + i);
+				System.out.print( (type == SPAM ? "SPAM" : "HAM") + " numéro: " + i + ": ");
 				if(test(file) == type){
 					wins[type]++;
 					System.out.println("");
@@ -154,9 +154,9 @@ public class ClassifBayes implements Serializable{
 				}
 			}
 		}
-		System.out.println("réussite SPAM: " + wins[SPAM] + "/" + total[SPAM] + "="+(double)wins[SPAM]/total[SPAM]);
-		System.out.println("réussite HAM: " + wins[HAM] + "/" + total[HAM] + "="+(double)wins[HAM]/total[HAM]);
-		System.out.println("réussite totale: " + (wins[SPAM]+wins[HAM]) + "/" + (total[SPAM]+total[HAM]) + "="+ ((double)(wins[SPAM]+wins[HAM])/(total[SPAM]+total[HAM]) ));
+		System.out.println("échec SPAM: 1-(" + wins[SPAM] + "/" + total[SPAM] + ") ="+Math.round( ( (1-(double)wins[SPAM]/total[SPAM]))*10000)/ 100.+"%");
+		System.out.println("échec HAM: 1-(" + wins[HAM] + "/" + total[HAM] + ") ="+ Math.round(((1-(double)wins[HAM]/total[HAM]))*10000)/ 100.+"%");
+		System.out.println("échec totale: 1-(" + (wins[SPAM]+wins[HAM]) + "/" + (total[SPAM]+total[HAM]) + ") ="+ Math.round(((1-(double)(wins[SPAM]+wins[HAM])/(total[SPAM]+total[HAM]) ))*10000)/ 100.+"%");
 	}
 
 
@@ -192,7 +192,7 @@ public class ClassifBayes implements Serializable{
 			e.printStackTrace();
 		}
 
-		System.out.println("la limite: "+ max + " n'a pas été dépassée: " + i + " fichiers lus");
+		System.out.println("la limite: "+ max + " n'a pas été atteinte: " + i + " fichiers lus");
 		return list;
 	}
 
