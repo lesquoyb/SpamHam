@@ -37,6 +37,7 @@ public class ClassifBayes implements Serializable{
 			out.writeObject(this);
 			out.close();
 			fileOut.close();
+			System.out.println("classifieur enregistré dans " + file);
 		}catch(IOException i){
 			i.printStackTrace();
 		}
@@ -50,6 +51,7 @@ public class ClassifBayes implements Serializable{
 			c = (ClassifBayes) in.readObject();
 			in.close();
 			fileIn.close();
+			System.out.println("classifieur chargé depuis " + file);
 		}catch(IOException i){
 			i.printStackTrace();
 		}catch(ClassNotFoundException d){
@@ -67,16 +69,8 @@ public class ClassifBayes implements Serializable{
 		nb_mess[type]++;
 	}
 	
-	public void learning(String appDir){
-		int nbHam;
-		int nbSpam;
-		Scanner sc = new Scanner(System.in);
-		do{
-			System.out.println("nombre de HAM à apprendre ?");
-			nbHam = sc.nextInt();
-			System.out.println("nombre de SPAM à apprendre ?");
-			nbSpam = sc.nextInt();
-		}while(nbHam < 0 || nbSpam < 0);
+	public void learning(String appDir, int nbHam, int nbSpam){
+		System.out.println("repertoire: " + appDir + " nbHam: " + nbHam + " nbSpam: " + nbSpam);
 		System.out.println("learning ... ");
 		String[] dirs = new String[2];
 		dirs[SPAM] = "spam";
@@ -95,10 +89,23 @@ public class ClassifBayes implements Serializable{
 				}
 			}
 		}
+
+	}
+	public void learning(String appDir){
+		int nbHam;
+		int nbSpam;
+		Scanner sc = new Scanner(System.in);
+		do{
+			System.out.println("nombre de HAM à apprendre ?");
+			nbHam = sc.nextInt();
+			System.out.println("nombre de SPAM à apprendre ?");
+			nbSpam = sc.nextInt();
+		}while(nbHam < 0 || nbSpam < 0);
+		learning(appDir, nbHam, nbSpam);
 	}
 
 
-	private int test(FileInputStream f){
+	public int test(FileInputStream f){
 		double[] proba = new double[2];
 		List<String> vec_file = lire_message(f);
 		for(String word : dic){
@@ -110,7 +117,8 @@ public class ClassifBayes implements Serializable{
 		proba[SPAM] += Math.log10(proba(SPAM));
 		proba[HAM] += Math.log10(proba(HAM));
 		boolean spam = proba[SPAM] >= proba[HAM];
-		System.out.print("log10(P(Y=SPAM | X=x)) = "+ proba[SPAM] +", log10(P(Y=HAM | X=x)) = " + proba[SPAM] + "=> identifié comme un " + ((spam) ? "spam" : "ham"));
+		System.out.println(": log10(P(Y=SPAM | X=x)) = "+ proba[SPAM] +", log10(P(Y=HAM | X=x)) = " + proba[HAM]);
+		System.out.print("\t=> identifié comme un " + ((spam) ? "spam" : "ham"));
 		return spam  ? SPAM : HAM;
 	}
 

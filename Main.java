@@ -32,6 +32,9 @@ public class Main {
 
 
 
+	public static void printMan(){
+		//TODO
+	}
 
 	
 	public static void main(String ... args) throws FileNotFoundException{
@@ -39,16 +42,36 @@ public class Main {
 		List<String> dico = charger_dictionnaire(d);
 
 		String baseAppPath = "baseapp";
+		ClassifBayes classif = new ClassifBayes(dico);
+			
 		
-		if(args.length == 3){
+		if(args[0].equals("filtre_mail")){
+			classif = ClassifBayes.openSavedClassif(args[1]);
+			FileInputStream f = new FileInputStream(args[2]);
+			classif.test(f);
+			System.out.println("\nd'après le classifieur "+ args[1]);
+		}
+		else if(args[0].equals("apprend_filtre")){
+			classif.learning(args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]));
+			classif.save(args[1]);
+		} 
+		else if(args[0].equals("filtre_en_ligne") && args[args.length-1].equals("HAM") || args[args.length-1].equals("SPAM")){
+			classif = ClassifBayes.openSavedClassif(args[1]);
+			for(int i = 2 ; i < args.length-1 ; i++){
+				FileInputStream f = new FileInputStream(args[i]);
+				classif.learnFile(f, args[args.length-1].equals("HAM") ? ClassifBayes.HAM : ClassifBayes.SPAM);
+			}
+			classif.save(args[1]);
+		}
+		else if(args.length == 3){
 			String baseTestPath = args[0];
-			ClassifBayes classif = new ClassifBayes(dico);
 			classif.learning(baseAppPath);
 			classif.test(baseTestPath, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
 		}
 		else{
-			
+			printMan();
 		}
+		
 	}
 	
 	
