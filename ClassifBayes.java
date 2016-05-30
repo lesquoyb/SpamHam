@@ -3,12 +3,17 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
-public class ClassifBayes{
+public class ClassifBayes implements Serializable{
 
 	static final int SPAM = 0;
 	static final int HAM = 1;
@@ -23,22 +28,56 @@ public class ClassifBayes{
 	}
 
 
-	/**
-	 * 
-	 * @param word: le mot à ajouter
-	 * @param type: HAM ou SPAM
-	 */
-	/*	private void addOccurence(String word, int type){
-		if(dic.contains(word)){
-			occurences[dic.indexOf(word)][type]++;
+
+	
+	public void save(String file){
+		try{
+			FileOutputStream fileOut = new FileOutputStream(file);
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(this);
+			out.close();
+			fileOut.close();
+		}catch(IOException i){
+			i.printStackTrace();
 		}
 	}
-	 */
+	
+	public static ClassifBayes openSavedClassif(String file){
+		ClassifBayes c = null;
+		try{
+			FileInputStream fileIn = new FileInputStream(file);
+			ObjectInputStream in = new ObjectInputStream(fileIn);
+			c = (ClassifBayes) in.readObject();
+			in.close();
+			fileIn.close();
+		}catch(IOException i){
+			i.printStackTrace();
+		}catch(ClassNotFoundException d){
+			d.printStackTrace();
+		}
+		return c;
+	}
 
-	public void apprentissage(String appDir){
-		int nbHam = 10000;
-		int nbSpam = 10000;
-
+	public void learnFile(FileInputStream file, int type){
+		for(String s : lire_message(file) ){
+			if(dic.contains(s)){
+				occurences[ dic.indexOf(s) ][ type ] ++;
+			}						
+		}
+		nb_mess[type]++;
+	}
+	
+	public void learning(String appDir){
+		int nbHam;
+		int nbSpam;
+		Scanner sc = new Scanner(System.in);
+		do{
+			System.out.println("nombre de HAM à apprendre ?");
+			nbHam = sc.nextInt();
+			System.out.println("nombre de SPAM à apprendre ?");
+			nbSpam = sc.nextInt();
+		}while(nbHam < 0 || nbSpam < 0);
+		System.out.println("learning ... ");
 		String[] dirs = new String[2];
 		dirs[SPAM] = "spam";
 		dirs[HAM] = "ham";
@@ -48,12 +87,12 @@ public class ClassifBayes{
 
 		for(int type = 0 ; type < 2 ; type++){
 			for(FileInputStream file : listFilesForFolder(appDir + File.separator + dirs[type], max[type])){
-				for(String s : lire_message(file) ){
-					if(dic.contains(s)){
-						occurences[ dic.indexOf(s) ][ type ] ++;
-					}						
+				learnFile(file, type);
+				try {
+					file.close();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-				nb_mess[type]++;
 			}
 		}
 	}
@@ -64,37 +103,66 @@ public class ClassifBayes{
 		List<String> vec_file = lire_message(f);
 		for(String word : dic){
 			for(int type = 0 ; type < 2 ; type++){
-				if(type == HAM && dic.contains(word)){
-				//	System.out.println(word);
-				}
 				proba[type] += Math.log10(proba(word, type, vec_file));
 			}
 		}
-		return (proba[SPAM] >= proba[HAM]) ? SPAM : HAM;
+
+		proba[SPAM] += Math.log10(proba(SPAM));
+		proba[HAM] += Math.log10(proba(HAM));
+		boolean spam = proba[SPAM] >= proba[HAM];
+		System.out.print("log10(P(Y=SPAM | X=x)) = "+ proba[SPAM] +", log10(P(Y=HAM | X=x)) = " + proba[SPAM] + "=> identifié comme un " + ((spam) ? "spam" : "ham"));
+		return spam  ? SPAM : HAM;
 	}
 
 
-	public void test(String testDir){
+	public void test(String testDir, int nbSpam, int nbHam){
 		String[] dirs = new String[2];
 		dirs[SPAM] = "spam";
 		dirs[HAM] = "ham";
 		int[] max = new int[2];
-		max[SPAM] = 10000;
-		max[HAM] = 10000;
-		for(int type = 0 ; type < 2 ; type++){
-			for(FileInputStream file : listFilesForFolder(testDir + File.separator + dirs[type], max[type])){
-				boolean win = (test(file) == type);
-				System.out.println(file.toString() + "  "  +  win);
+		Scanner sc = new Scanner(System.in);
+		max[HAM] = nbHam;
+		max[SPAM] = nbSpam;
 
+		int[] wins = new int[2];
+		int[] total = new int[2];
+		for(int type = 0 ; type < 2 ; type++){
+			int i = 0;
+			for(FileInputStream file : listFilesForFolder(testDir + File.separator + dirs[type], max[type])){
+				System.out.print( (type == SPAM ? "SPAM" : "HAM") + " numéro: " + i);
+				if(test(file) == type){
+					wins[type]++;
+					System.out.println("");
+				}
+				else{
+					System.out.println("\t*** erreur ***");
+				}
+				total[type]++;
+				i++;
+				try {
+					file.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		System.out.println("réussite SPAM: " + wins[SPAM] + "/" + total[SPAM] + "="+(double)wins[SPAM]/total[SPAM]);
+		System.out.println("réussite HAM: " + wins[HAM] + "/" + total[HAM] + "="+(double)wins[HAM]/total[HAM]);
+		System.out.println("réussite totale: " + (wins[SPAM]+wins[HAM]) + "/" + (total[SPAM]+total[HAM]) + "="+ ((double)(wins[SPAM]+wins[HAM])/(total[SPAM]+total[HAM]) ));
 	}
 
 
 	public double proba(String word, int type, List<String> vec_file){
-		double prob = ((double)occurences[dic.indexOf(word)][type] ) / nb_mess[type] ;
+		double epsilon = 1;
+		double prob = 	( (double)occurences[dic.indexOf(word)][type] + epsilon )  
+						/ (nb_mess[type] + epsilon * 2) ;
+		
 		return (vec_file.contains(word)) ? prob
 										 : 1. - prob ;
+	}
+	
+	public double proba(int type){
+		return ((double)nb_mess[type]) / (nb_mess[SPAM]+nb_mess[HAM]);
 	}
 
 

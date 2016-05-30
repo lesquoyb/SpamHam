@@ -1,6 +1,5 @@
 import java.io.BufferedReader;
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,11 +39,16 @@ public class Main {
 		List<String> dico = charger_dictionnaire(d);
 
 		String baseAppPath = "baseapp";
-		String baseTestPath = "basetest";
-		ClassifBayes classif = new ClassifBayes(dico);
-		classif.apprentissage(baseAppPath);
-		classif.test(baseTestPath);
-		//System.out.println(classif.proba("YOU", ClassifBayes.SPAM) + " " +  classif.proba("YOU", ClassifBayes.HAM));
+		
+		if(args.length == 3){
+			String baseTestPath = args[0];
+			ClassifBayes classif = new ClassifBayes(dico);
+			classif.learning(baseAppPath);
+			classif.test(baseTestPath, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+		}
+		else{
+			
+		}
 	}
 	
 	
